@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planejador Financeiro - Estilo GuiaInvest</title>
+    <!-- Importando Chart.js para o gráfico -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-color: #00b094; /* Cor verde característica estilo GuiaInvest */
+            --dark-bg: #1a1a1a;
+            --text-color: #333;
+            --light-gray: #f4f4f4;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f2f5;
+            color: var(--text-color);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 40px auto;
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 40px;
+        }
+
+        h1 {
+            color: #2c3e50;
+            grid-column: 1 / -1;
+            text-align: center;
+            margin-bottom: 30px;
+            font-weight: 700;
+        }
+
+        /* Área de Inputs */
+        .inputs-section {
+            background-color: #fff;
+            padding-right: 20px;
+            border-right: 1px solid #eee;
+        }
+
+        .input-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+            font-size: 0.9rem;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+            box-sizing: border-box; /* Garante que o padding não quebre o layout */
+        }
+
+        input:focus {
+            border-color: var(--primary-color);
+            outline: none;
+        }
+
+        /* Área de Resultados e Gráfico */
+        .results-section {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .cards-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: var(--light-gray);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .card.highlight {
+            background: #e6fffa;
+            border: 1px solid var(--primary-color);
+        }
+
+        .card h3 {
+            margin: 0 0 10px 0;
+            font-size: 0.9rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .card .value {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #2c3e50;
+        }
+
+        .card.highlight .value {
+            color: var(--primary-color);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+        }
+
+        /* Responsividade para celular */
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                margin: 20px;
+                padding: 20px;
+            }
+            .inputs-section {
+                border-right: none;
+                border-bottom: 1px solid #eee;
+                padding-bottom: 20px;
+                padding-right: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Planejador de Liberdade Financeira</h1>
+
+        <!-- Coluna da Esquerda: Inputs -->
+        <div class="inputs-section">
+            <div class="input-group">
+                <label>Patrimônio Inicial (R$)</label>
+                <input type="number" id="inicial" value="10000" oninput="calcular()">
+            </div>
+
+            <div class="input-group">
+                <label>Aporte Mensal (R$)</label>
+                <input type="number" id="mensal" value="1000" oninput="calcular()">
+            </div>
+
+            <div class="input-group">
+                <label>Taxa de Juros Anual (%)</label>
+                <input type="number" id="taxa" value="10" step="0.1" oninput="calcular()">
+            </div>
+
+            <div class="input-group">
+                <label>Tempo de Investimento (Anos)</label>
+                <input type="number" id="tempo" value="20" oninput="calcular()">
+            </div>
+        </div>
+
+        <!-- Coluna da Direita: Resultados e Gráfico -->
+        <div class="results-section">
+            <div class="cards-container">
+                <div class="card highlight">
+                    <h3>Patrimônio Total</h3>
+                    <div class="value" id="res-total">R$ 0,00</div>
+                </div>
+                <div class="card">
+                    <h3>Renda Passiva Mensal</h3>
+                    <div class="value" id="res-renda">R$ 0,00</div>
+                </div>
+                <div class="card">
+                    <h3>Total Investido (Do Bolso)</h3>
+                    <div class="value" id="res-investido">R$ 0,00</div>
+                </div>
+                <div class="card">
+                    <h3>Total em Juros</h3>
+                    <div class="value" id="res-juros">R$ 0,00</div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <canvas id="financeChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let myChart;
+
+        function calcular() {
+            // 1. Pegar valores
+            let inicial = parseFloat(document.getElementById('inicial').value) || 0;
+            let aporte = parseFloat(document.getElementById('mensal').value) || 0;
+            let taxaAnual = parseFloat(document.getElementById('taxa').value) || 0;
+            let anos = parseFloat(document.getElementById('tempo').value) || 0;
+
+            // 2. Cálculos Matemáticos
+            let taxaMensal = Math.pow(1 + (taxaAnual / 100), 1/12) - 1;
+            let meses = anos * 12;
+
+            let labels = [];
+            let dataPatrimonio = [];
+            let dataInvestido = [];
+            
+            let saldo = inicial;
+            let totalInvestido = inicial;
+
+            // Loop para gerar dados do gráfico mês a mês
+            for (let i = 0; i <= meses; i++) {
+                // Adiciona ponto no gráfico a cada ano (para não ficar pesado)
+                if (i % 12 === 0) {
+                    labels.push(i / 12 + ' anos');
+                    dataPatrimonio.push(saldo);
+                    dataInvestido.push(totalInvestido);
+                }
+
+                if (i < meses) {
+                    let rendimento = saldo * taxaMensal;
+                    saldo += rendimento + aporte;
+                    totalInvestido += aporte;
+                }
+            }
+
+            let totalJuros = saldo - totalInvestido;
+            let rendaPassiva = saldo * taxaMensal;
+
+            // 3. Atualizar Texto na Tela
+            document.getElementById('res-total').innerText = formatarMoeda(saldo);
+            document.getElementById('res-renda').innerText = formatarMoeda(rendaPassiva);
+            document.getElementById('res-investido').innerText = formatarMoeda(totalInvestido);
+            document.getElementById('res-juros').innerText = formatarMoeda(totalJuros);
+
+            // 4. Atualizar Gráfico
+            atualizarGrafico(labels, dataPatrimonio, dataInvestido);
+        }
+
+        function formatarMoeda(valor) {
+            return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+
+        function atualizarGrafico(labels, dataTotal, dataInvestido) {
+            const ctx = document.getElementById('financeChart').getContext('2d');
+
+            if (myChart) {
+                myChart.destroy();
+            }
+
+            myChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Patrimônio Acumulado',
+                            data: dataTotal,
+                            borderColor: '#00b094',
+                            backgroundColor: 'rgba(0, 176, 148, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Dinheiro Investido',
+                            data: dataInvestido,
+                            borderColor: '#888',
+                            borderDash: [5, 5],
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.parsed.y.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return 'R$ ' + value.toLocaleString('pt-BR', { notation: "compact" });
+                                }
+                            }
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Inicializa o cálculo ao carregar a página
+        window.onload = calcular;
+    </script>
+</body>
+</html>
