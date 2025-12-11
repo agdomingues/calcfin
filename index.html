@@ -3,614 +3,749 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Planejador Financeiro Multi-Objetivos</title>
+    <title>Planejador Pro 4.0</title>
+    <!-- Chart.js para gráficos -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Canvas Confetti para animação -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
     <style>
         :root {
-            --primary: #00b094;
-            --primary-dark: #008a74;
-            --dark: #2c3e50;
-            --light: #f8f9fa;
-            --gray: #e9ecef;
-            --text: #333;
-            --danger: #e74c3c;
-            --success: #27ae60;
+            --primary: #2c3e50;
+            --accent: #00b094;
+            --bg: #f3f4f6;
+            --card-bg: #ffffff;
+            --text: #374151;
+            --border: #e5e7eb;
+            --success: #10b981;
         }
 
         body {
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
             margin: 0;
-            background-color: #f0f2f5;
+            background-color: var(--bg);
             color: var(--text);
             height: 100vh;
             display: flex;
-            flex-direction: column;
+            overflow: hidden;
         }
 
-        /* Layout Principal */
-        .main-wrapper {
-            display: flex;
-            flex: 1;
-            height: 100%;
-            overflow: hidden; /* Evita rolagem dupla */
-        }
+        /* LAYOUT */
+        .app-container { display: flex; width: 100%; height: 100%; }
 
-        /* --- Menu Lateral (Esquerda) --- */
+        /* SIDEBAR */
         .sidebar {
             width: 280px;
-            background: white;
-            border-right: 1px solid #ddd;
+            background: var(--card-bg);
+            border-right: 1px solid var(--border);
             display: flex;
             flex-direction: column;
-            overflow-y: auto;
             flex-shrink: 0;
-            z-index: 10;
+            z-index: 20;
+            transition: transform 0.3s;
         }
 
-        .brand {
+        .logo-area {
             padding: 25px;
-            font-size: 1.2rem;
+            font-size: 1.4rem;
             font-weight: 800;
             color: var(--primary);
-            border-bottom: 1px solid var(--gray);
-            text-align: center;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: linear-gradient(to right, #fff, #f9fafb);
         }
 
-        .menu-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
+        .menu { padding: 15px; overflow-y: auto; flex: 1; }
 
         .menu-item {
-            padding: 18px 25px;
+            padding: 14px 18px;
+            margin-bottom: 8px;
+            border-radius: 10px;
             cursor: pointer;
+            font-weight: 600;
+            color: #6b7280;
             transition: all 0.2s;
-            border-left: 5px solid transparent;
-            color: #666;
-            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.95rem;
         }
 
-        .menu-item:hover {
-            background-color: #f4fbf9;
-            color: var(--primary);
-        }
+        .menu-item:hover { background-color: #f9fafb; color: var(--primary); transform: translateX(4px); }
 
         .menu-item.active {
-            background-color: #e6fffa;
-            color: var(--primary-dark);
-            border-left-color: var(--primary);
+            background-color: var(--bg-active);
+            color: var(--color-active);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         }
 
-        .menu-item small {
-            display: block;
-            font-size: 0.75rem;
-            color: #999;
-            margin-top: 4px;
-            font-weight: 400;
-        }
-
-        /* --- Área de Conteúdo (Direita) --- */
-        .content {
+        /* MAIN CONTENT */
+        .main-content {
             flex: 1;
             padding: 30px;
             overflow-y: auto;
-            background-color: #f8f9fa;
-        }
-
-        .header-content {
-            margin-bottom: 30px;
-        }
-
-        .header-content h2 {
-            margin: 0 0 10px 0;
-            color: var(--dark);
-        }
-
-        .header-content p {
-            color: #666;
-            margin: 0;
-        }
-
-        /* Grid da Calculadora */
-        .calculator-grid {
-            display: grid;
-            grid-template-columns: 350px 1fr;
-            gap: 30px;
-        }
-
-        .inputs-card {
-            background: white;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            height: fit-content;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            color: var(--dark);
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 1rem;
-            box-sizing: border-box; 
-        }
-
-        .form-group input:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(0, 176, 148, 0.1);
-        }
-
-        /* Resultados */
-        .results-container {
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 25px;
         }
 
-        .cards-row {
+        /* Header com Toggle Switch */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header-texts h1 { margin: 0; font-size: 1.8rem; color: var(--primary); }
+        .header-texts p { margin: 5px 0 0 0; color: #6b7280; }
+
+        /* Toggle Inflação */
+        .inflation-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: white;
+            padding: 8px 15px;
+            border-radius: 30px;
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .switch {
+            position: relative; display: inline-block; width: 40px; height: 22px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc; transition: .4s; border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px;
+            background-color: white; transition: .4s; border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--accent); }
+        input:checked + .slider:before { transform: translateX(18px); }
+        .toggle-label { font-size: 0.85rem; font-weight: 600; color: #555; }
+
+
+        /* GRID SYSTEM */
+        .dashboard-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
+            grid-template-columns: 340px 1fr;
+            gap: 25px;
+            height: 100%;
         }
 
-        .res-card {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.03);
-            text-align: center;
+        /* CARDS */
+        .card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border);
         }
 
-        .res-card h4 {
-            margin: 0 0 10px 0;
-            font-size: 0.85rem;
-            color: #777;
-            text-transform: uppercase;
+        /* INPUTS */
+        .input-group { margin-bottom: 18px; display: none; }
+        .input-group.visible { display: block; animation: fadeIn 0.4s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        label {
+            display: block; font-size: 0.8rem; font-weight: 700; color: #4b5563;
+            margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;
         }
 
-        .res-card .value {
-            font-size: 1.4rem;
-            font-weight: 700;
-            color: var(--dark);
+        input, select {
+            width: 100%; padding: 12px 15px; border: 2px solid #e5e7eb; border-radius: 8px;
+            font-size: 1rem; transition: border-color 0.2s; box-sizing: border-box; background: #f9fafb;
+        }
+        input:focus { outline: none; border-color: var(--accent); background: #fff; }
+
+        .radio-group { display: flex; gap: 10px; }
+        .radio-option { flex: 1; }
+        .radio-option input { display: none; }
+        .radio-option label {
+            display: block; text-align: center; padding: 10px; background: #f3f4f6;
+            border-radius: 8px; cursor: pointer; font-weight: 600; color: #666; font-size: 0.9rem;
+            border: 2px solid transparent; text-transform: none;
+        }
+        .radio-option input:checked + label {
+            background: var(--color-active); color: white; border-color: var(--color-active);
         }
 
-        .res-card.highlight {
-            background: var(--primary);
-            color: white;
-        }
-        .res-card.highlight h4 { color: rgba(255,255,255,0.8); }
-        .res-card.highlight .value { color: white; }
+        /* RESULT CARDS */
+        .result-box { display: flex; flex-direction: column; gap: 20px; }
 
-        /* Status Bar (Meta) */
-        .status-box {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border-left: 5px solid #ccc;
+        .main-kpi {
+            background: linear-gradient(135deg, var(--color-active), var(--primary));
+            color: white; padding: 25px; border-radius: 16px; text-align: center;
+            position: relative; overflow: hidden; transition: transform 0.2s;
         }
-        .status-box.success { border-left-color: var(--success); background: #f0fff4; }
-        .status-box.fail { border-left-color: var(--danger); background: #fff5f5; }
+        .main-kpi:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+        
+        .main-kpi h3 { margin: 0 0 10px 0; opacity: 0.9; font-size: 0.9rem; text-transform: uppercase; }
+        .main-kpi .big-number { font-size: 2.2rem; font-weight: 800; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .main-kpi .sub-text { font-size: 0.9rem; opacity: 0.9; margin-top: 5px; }
 
-        .chart-box {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.03);
-            height: 350px;
+        .tag-real {
+            position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.2);
+            padding: 4px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: bold; display: none;
         }
 
-        /* Responsividade Mobile */
+        .secondary-kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .mini-card {
+            background: white; padding: 15px; border-radius: 12px; border: 1px solid var(--border); text-align: center;
+        }
+        .mini-card small { display: block; color: #6b7280; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; margin-bottom: 5px;}
+        .mini-card strong { font-size: 1.1rem; color: var(--primary); }
+
+        .chart-container { flex: 1; min-height: 300px; position: relative; }
+
+        /* MOBILE */
         @media (max-width: 900px) {
-            .main-wrapper {
-                flex-direction: column;
-                overflow: auto;
-            }
-            
-            .sidebar {
-                width: 100%;
-                height: auto;
-                border-right: none;
-                border-bottom: 1px solid #ddd;
-            }
-
-            .menu-list {
-                display: flex;
-                overflow-x: auto;
-                white-space: nowrap;
-                padding-bottom: 5px;
-            }
-
-            .menu-item {
-                border-left: none;
-                border-bottom: 4px solid transparent;
-                padding: 15px 20px;
-            }
-
-            .menu-item.active {
-                border-left: none;
-                border-bottom-color: var(--primary);
-            }
-
-            .calculator-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .cards-row {
-                grid-template-columns: 1fr;
-            }
+            .app-container { flex-direction: column; overflow-y: auto; }
+            .sidebar { width: 100%; height: auto; padding-bottom: 10px; border-right: none; }
+            .logo-area { display: none; }
+            .menu { display: flex; overflow-x: auto; padding: 10px; gap: 10px; }
+            .menu-item { white-space: nowrap; margin: 0; padding: 10px 15px; font-size: 0.85rem;}
+            .main-content { padding: 20px; overflow: visible; }
+            .header { flex-direction: column; align-items: flex-start; gap: 15px; }
+            .dashboard-grid { grid-template-columns: 1fr; display: flex; flex-direction: column; }
+            .chart-container { height: 280px; }
         }
     </style>
 </head>
 <body>
 
-    <div class="main-wrapper">
-        <!-- MENU LATERAL -->
-        <nav class="sidebar">
-            <div class="brand">Planejador</div>
-            <ul class="menu-list">
-                <li class="menu-item active" onclick="mudarCategoria('independencia')">
-                    Independência Financeira
-                    <small>Viver de renda passiva</small>
-                </li>
-                <li class="menu-item" onclick="mudarCategoria('aposentadoria')">
-                    Aposentadoria
-                    <small>Complemento ao INSS</small>
-                </li>
-                <li class="menu-item" onclick="mudarCategoria('casa')">
-                    Compra de Imóvel
-                    <small>Entrada ou à vista</small>
-                </li>
-                <li class="menu-item" onclick="mudarCategoria('educacao')">
-                    Educação dos Filhos
-                    <small>Faculdade e Intercâmbio</small>
-                </li>
-                <li class="menu-item" onclick="mudarCategoria('carro')">
-                    Troca de Carro
-                    <small>Compra de veículo</small>
-                </li>
-                <li class="menu-item" onclick="mudarCategoria('viagem')">
-                    Viagem dos Sonhos
-                    <small>Férias planejadas</small>
-                </li>
-                <li class="menu-item" onclick="mudarCategoria('reserva')">
-                    Reserva de Emergência
-                    <small>Segurança financeira</small>
-                </li>
-                <li class="menu-item" onclick="mudarCategoria('casamento')">
-                    Casamento / Festa
-                    <small>O grande dia</small>
-                </li>
-            </ul>
-        </nav>
-
-        <!-- ÁREA DA CALCULADORA -->
-        <main class="content">
-            <div class="header-content">
-                <h2 id="titulo-pagina">Independência Financeira</h2>
-                <p id="desc-pagina">Calcule quanto você precisa acumular para viver apenas dos rendimentos dos seus investimentos.</p>
+<div class="app-container">
+    <!-- MENU LATERAL -->
+    <nav class="sidebar">
+        <div class="logo-area">
+            <span style="font-size:1.8rem;">🚀</span> Planejador Pro
+        </div>
+        <div class="menu">
+            <div class="menu-item active" onclick="setMode('reserva')" data-theme="#16a085" data-bg="#e8f8f5">
+                <span>🛡️</span> Reserva Emergência
             </div>
-
-            <div class="calculator-grid">
-                <!-- Coluna de Inputs -->
-                <div class="inputs-card">
-                    <div class="form-group">
-                        <label>Patrimônio Atual (R$)</label>
-                        <input type="number" id="inicial" value="10000" oninput="calcular()">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Aporte Mensal (R$)</label>
-                        <input type="number" id="mensal" value="1500" oninput="calcular()">
-                    </div>
-
-                    <div class="form-group">
-                        <label>Taxa de Juros (% ao Mês)</label>
-                        <input type="number" id="taxa" value="0.8" step="0.01" oninput="calcular()">
-                    </div>
-
-                    <div class="form-group">
-                        <label>Tempo (Meses)</label>
-                        <input type="number" id="tempo" value="240" oninput="calcular()">
-                        <small style="color:#888; display:block; margin-top:5px" id="tempo-anos">(20 Anos)</small>
-                    </div>
-
-                    <!-- Input Dinâmico (Muda conforme o objetivo) -->
-                    <div class="form-group" style="background: #f0fbf9; padding: 10px; border-radius: 8px; border: 1px dashed var(--primary);">
-                        <label id="label-meta" style="color: var(--primary-dark)">Renda Mensal Desejada (R$)</label>
-                        <input type="number" id="meta-valor" value="5000" oninput="calcular()">
-                    </div>
-                </div>
-
-                <!-- Coluna de Resultados -->
-                <div class="results-container">
-                    
-                    <!-- Box de Status (Atingiu ou não) -->
-                    <div id="status-box" class="status-box">
-                        <strong id="status-titulo">Analisando...</strong>
-                        <div id="status-msg">Preencha os dados para ver o resultado.</div>
-                    </div>
-
-                    <div class="cards-row">
-                        <div class="res-card highlight">
-                            <h4>Você Terá Acumulado</h4>
-                            <div class="value" id="res-total">R$ 0,00</div>
-                        </div>
-                        <div class="res-card">
-                            <h4>Renda Passiva Mensal</h4>
-                            <div class="value" id="res-renda">R$ 0,00</div>
-                        </div>
-                        <div class="res-card">
-                            <h4>Meta Necessária</h4>
-                            <div class="value" id="res-meta-total">R$ 0,00</div>
-                        </div>
-                    </div>
-
-                    <div class="chart-box">
-                        <canvas id="financeChart"></canvas>
-                    </div>
-                </div>
+            <div class="menu-item" onclick="setMode('divida')" data-theme="#c0392b" data-bg="#f9ebea">
+                <span>💳</span> Pagar Dívidas
             </div>
-        </main>
-    </div>
+            <div class="menu-item" onclick="setMode('aposentadoria')" data-theme="#2980b9" data-bg="#ebf5fb">
+                <span>🏖️</span> Aposentadoria
+            </div>
+            <div class="menu-item" onclick="setMode('investimentos')" data-theme="#8e44ad" data-bg="#f4ecf7">
+                <span>📈</span> Investimentos
+            </div>
+            <div class="menu-item" onclick="setMode('bens')" data-theme="#d35400" data-bg="#fbe6d9">
+                <span>🏠</span> Aquisição de Bens
+            </div>
+            <div class="menu-item" onclick="setMode('sonhos')" data-theme="#e84393" data-bg="#fdecf5">
+                <span>✈️</span> Realizar Sonhos
+            </div>
+            <div class="menu-item" onclick="setMode('faculdade')" data-theme="#f39c12" data-bg="#fef5e7">
+                <span>🎓</span> Faculdade Filho
+            </div>
+        </div>
+    </nav>
 
-    <script>
-        // --- CONFIGURAÇÃO DAS CATEGORIAS ---
-        const categorias = {
-            independencia: {
-                titulo: "Independência Financeira",
-                desc: "Descubra o 'Número Mágico' de patrimônio necessário para gerar a renda mensal que você deseja sem trabalhar.",
-                labelMeta: "Renda Mensal Desejada (R$)",
-                defaultMeta: 5000,
-                defaultTempo: 240, // 20 anos
-                tipoCalculo: "renda" // Calcula baseado na renda passiva
-            },
-            aposentadoria: {
-                titulo: "Planejamento de Aposentadoria",
-                desc: "Quanto você precisa juntar para complementar o INSS e manter seu padrão de vida na melhor idade?",
-                labelMeta: "Renda Complementar Desejada (R$)",
-                defaultMeta: 3000,
-                defaultTempo: 360, // 30 anos
-                tipoCalculo: "renda"
-            },
-            casa: {
-                titulo: "Compra de Imóvel",
-                desc: "Planeje a compra da sua casa própria. Veja quanto tempo ou quanto dinheiro falta para dar a entrada ou comprar à vista.",
-                labelMeta: "Valor do Imóvel (R$)",
-                defaultMeta: 350000,
-                defaultTempo: 60, // 5 anos
-                tipoCalculo: "acumulo" // Calcula se atingiu o montante total
-            },
-            educacao: {
-                titulo: "Educação dos Filhos",
-                desc: "Garanta o futuro dos seus filhos. Calcule os investimentos para pagar faculdade ou intercâmbio.",
-                labelMeta: "Custo Total da Faculdade/Curso (R$)",
-                defaultMeta: 200000,
-                defaultTempo: 180, // 15 anos
-                tipoCalculo: "acumulo"
-            },
-            carro: {
-                titulo: "Troca de Carro",
-                desc: "Pare de pagar juros de financiamento. Planeje a compra do seu carro à vista.",
-                labelMeta: "Valor do Veículo (R$)",
-                defaultMeta: 80000,
-                defaultTempo: 36, // 3 anos
-                tipoCalculo: "acumulo"
-            },
-            viagem: {
-                titulo: "Viagem dos Sonhos",
-                desc: "Paris, Disney ou Maldivas? Planeje suas férias sem voltar endividado.",
-                labelMeta: "Custo Total da Viagem (R$)",
-                defaultMeta: 25000,
-                defaultTempo: 24, // 2 anos
-                tipoCalculo: "acumulo"
-            },
-            reserva: {
-                titulo: "Reserva de Emergência",
-                desc: "O primeiro passo do investidor. O ideal é ter entre 6 a 12 meses do seu custo de vida guardados em liquidez.",
-                labelMeta: "Custo de Vida Mensal (R$)",
-                defaultMeta: 4000,
-                defaultTempo: 12, // 1 ano
-                tipoCalculo: "emergencia" // Multiplica meta por 6 meses
-            },
-            casamento: {
-                titulo: "Casamento e Festa",
-                desc: "Planeje o orçamento do grande dia para começar a vida a dois com o pé direito.",
-                labelMeta: "Orçamento da Festa/Lua de Mel (R$)",
-                defaultMeta: 45000,
-                defaultTempo: 18, // 1.5 anos
-                tipoCalculo: "acumulo"
-            }
-        };
-
-        let categoriaAtual = 'independencia';
-        let myChart;
-
-        // --- FUNÇÃO DE NAVEGAÇÃO ---
-        function mudarCategoria(cat) {
-            categoriaAtual = cat;
+    <!-- ÁREA PRINCIPAL -->
+    <main class="main-content">
+        <div class="header">
+            <div class="header-texts">
+                <h1 id="page-title">Reserva de Emergência</h1>
+                <p id="page-desc">Calcule o tempo para montar sua segurança financeira.</p>
+            </div>
             
-            // Atualiza visual do menu
-            document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
-            event.currentTarget.classList.add('active');
+            <!-- TOGGLE INFLAÇÃO (NOVIDADE) -->
+            <div class="inflation-toggle" title="Ajusta os valores para o poder de compra de hoje">
+                <span class="toggle-label">Modo Realidade (Descontar Inflação)</span>
+                <label class="switch">
+                    <input type="checkbox" id="inflation-switch" onchange="calcular()">
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
 
-            // Atualiza Textos e Inputs
-            const dados = categorias[cat];
-            document.getElementById('titulo-pagina').innerText = dados.titulo;
-            document.getElementById('desc-pagina').innerText = dados.desc;
-            document.getElementById('label-meta').innerText = dados.labelMeta;
-            document.getElementById('meta-valor').value = dados.defaultMeta;
-            document.getElementById('tempo').value = dados.defaultTempo;
-
-            // Refaz o cálculo
-            calcular();
-        }
-
-        // --- LÓGICA DE CÁLCULO ---
-        function calcular() {
-            // 1. Coleta de dados
-            const inicial = parseFloat(document.getElementById('inicial').value) || 0;
-            const mensal = parseFloat(document.getElementById('mensal').value) || 0;
-            const taxaMensal = (parseFloat(document.getElementById('taxa').value) || 0) / 100;
-            const meses = parseFloat(document.getElementById('tempo').value) || 0;
-            const metaInput = parseFloat(document.getElementById('meta-valor').value) || 0;
-
-            // Atualiza label de anos abaixo do input de meses
-            document.getElementById('tempo-anos').innerText = `(${ (meses/12).toFixed(1) } Anos)`;
-
-            // 2. Loop de Juros Compostos
-            let saldo = inicial;
-            let labels = [];
-            let dataSaldo = [];
-            let dataMeta = [];
-
-            // Define o Valor Alvo (Target) baseado no tipo de categoria
-            let valorAlvoTotal = 0;
-            const tipo = categorias[categoriaAtual].tipoCalculo;
-
-            if (tipo === 'renda') {
-                // Meta é ter patrimônio que gere a renda X
-                // Fórmula: Renda / Taxa
-                if(taxaMensal > 0) valorAlvoTotal = metaInput / taxaMensal;
-            } else if (tipo === 'emergencia') {
-                // Meta é 6 meses de custo de vida (conservador)
-                valorAlvoTotal = metaInput * 6;
-            } else {
-                // Tipo 'acumulo': A meta é o próprio valor digitado (ex: valor do carro)
-                valorAlvoTotal = metaInput;
-            }
-
-            for (let i = 0; i <= meses; i++) {
-                // Gera dados para o gráfico
-                if (meses <= 24 || i % Math.ceil(meses/12) === 0) { // Otimiza pontos do gráfico
-                    labels.push(i);
-                    dataSaldo.push(saldo);
-                    dataMeta.push(valorAlvoTotal);
-                }
-
-                if (i < meses) {
-                    saldo = saldo * (1 + taxaMensal) + mensal;
-                }
-            }
-
-            const rendaPassivaFinal = saldo * taxaMensal;
-
-            // 3. Exibir Resultados Numéricos
-            document.getElementById('res-total').innerText = formatarMoeda(saldo);
-            document.getElementById('res-renda').innerText = formatarMoeda(rendaPassivaFinal);
-            document.getElementById('res-meta-total').innerText = formatarMoeda(valorAlvoTotal);
-
-            // 4. Lógica de Feedback (Box Status)
-            const statusBox = document.getElementById('status-box');
-            const statusTitulo = document.getElementById('status-titulo');
-            const statusMsg = document.getElementById('status-msg');
-            
-            statusBox.className = 'status-box'; // reseta classes
-
-            if (saldo >= valorAlvoTotal) {
-                statusBox.classList.add('success');
-                statusTitulo.innerText = "Parabéns! Meta Atingida.";
-                statusMsg.innerText = `Neste cenário, você supera sua meta em ${formatarMoeda(saldo - valorAlvoTotal)}.`;
-            } else {
-                statusBox.classList.add('fail');
-                statusTitulo.innerText = "Meta não atingida.";
-                const falta = valorAlvoTotal - saldo;
+        <div class="dashboard-grid">
+            <!-- COLUNA ESQUERDA: INPUTS -->
+            <div class="card">
                 
-                if(tipo === 'renda') {
-                     statusMsg.innerText = `Faltam ${formatarMoeda(falta)} de patrimônio para gerar essa renda. Tente aumentar o aporte ou o prazo.`;
-                } else {
-                     statusMsg.innerText = `Faltam ${formatarMoeda(falta)} para conquistar este objetivo no prazo estipulado.`;
-                }
+                <div class="input-group" id="inp-custo-vida">
+                    <label>Custo de Vida Mensal (R$)</label>
+                    <input type="number" id="val_custo_mensal" value="3000" oninput="saveAndCalc()">
+                </div>
+
+                <div class="input-group" id="inp-valor-divida">
+                    <label>Valor Atual da Dívida (R$)</label>
+                    <input type="number" id="val_divida" value="10000" oninput="saveAndCalc()">
+                </div>
+
+                <div class="input-group" id="inp-valor-meta">
+                    <label id="lbl-valor-meta">Valor do Objetivo (R$)</label>
+                    <input type="number" id="val_meta" value="50000" oninput="saveAndCalc()">
+                </div>
+
+                <div class="input-group" id="inp-meses-reserva">
+                    <label>Tamanho da Reserva</label>
+                    <div class="radio-group">
+                        <div class="radio-option">
+                            <input type="radio" name="reserva_tamanho" id="meses_6" value="6" checked onchange="saveAndCalc()">
+                            <label for="meses_6">6 Meses</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="radio" name="reserva_tamanho" id="meses_12" value="12" onchange="saveAndCalc()">
+                            <label for="meses_12">12 Meses</label>
+                        </div>
+                    </div>
+                    <div style="margin-top:10px; font-weight:bold; color:var(--text); text-align:right" id="txt-total-reserva">
+                        Meta: R$ 18.000
+                    </div>
+                </div>
+
+                <div class="input-group" id="inp-renda-aposentadoria">
+                    <label>Renda Mensal Desejada na Aposentadoria (R$)</label>
+                    <input type="number" id="val_renda_apose" value="5000" oninput="saveAndCalc()">
+                </div>
+                
+                <div class="input-group" id="inp-custo-faculdade">
+                    <label>Custo Mensal do Curso (R$)</label>
+                    <small style="display:block; margin-bottom:5px; color:#888">Mensalidade + Moradia + Alimentação</small>
+                    <input type="number" id="val_custo_curso" value="2500" oninput="saveAndCalc()">
+                </div>
+
+                <div class="input-group" id="inp-tempo-acumular">
+                    <label id="lbl-tempo-acumular">Tempo de Investimento (Meses)</label>
+                    <input type="number" id="time_acum" value="60" oninput="saveAndCalc()">
+                </div>
+
+                <div class="input-group" id="inp-tempo-usufruir">
+                    <label id="lbl-tempo-usufruir">Tempo Recebendo (Anos)</label>
+                    <input type="number" id="time_usuf" value="20" oninput="saveAndCalc()">
+                </div>
+                
+                <div class="input-group" id="inp-duracao-curso">
+                    <label>Duração do Curso (Meses)</label>
+                    <input type="number" id="time_curso" value="60" oninput="saveAndCalc()">
+                </div>
+
+                <div class="input-group" id="inp-tempo-antecede">
+                    <label>Tempo até o Início do Curso (Meses)</label>
+                    <input type="number" id="time_wait" value="120" oninput="saveAndCalc()">
+                </div>
+
+                <hr style="border:0; border-top:1px solid #eee; margin: 20px 0;">
+
+                <div class="input-group visible" id="inp-inicial">
+                    <label>Aporte Inicial (R$)</label>
+                    <input type="number" id="val_inicial" value="1000" oninput="saveAndCalc()">
+                </div>
+
+                <div class="input-group visible" id="inp-mensal">
+                    <label id="lbl-aporte-mensal">Aporte Mensal (R$)</label>
+                    <input type="number" id="val_mensal" value="500" oninput="saveAndCalc()">
+                    <small id="hint-aporte" style="display:none; color:var(--accent)">Este valor será calculado!</small>
+                </div>
+
+                <div class="input-group visible" id="inp-taxa">
+                    <label>Taxa de Juros Investimento (% a.m.)</label>
+                    <input type="number" id="rate_inv" value="0.9" step="0.01" oninput="saveAndCalc()">
+                </div>
+
+                <div class="input-group" id="inp-taxa-divida">
+                    <label style="color:#c0392b">Taxa de Juros da Dívida (% a.m.)</label>
+                    <input type="number" id="rate_debt" value="2.5" step="0.01" oninput="saveAndCalc()">
+                </div>
+
+            </div>
+
+            <!-- COLUNA DIREITA: RESULTADOS -->
+            <div class="result-box">
+                <div class="main-kpi">
+                    <div class="tag-real" id="tag-real">MODO REAL</div>
+                    <h3 id="res-label-main">Tempo Necessário</h3>
+                    <div class="big-number" id="res-val-main">0 Meses</div>
+                    <div class="sub-text" id="res-sub-main">Para atingir seu objetivo</div>
+                </div>
+
+                <div class="secondary-kpis">
+                    <div class="mini-card">
+                        <small id="res-label-1">Total Acumulado</small>
+                        <strong id="res-val-1">R$ 0,00</strong>
+                    </div>
+                    <div class="mini-card">
+                        <small id="res-label-2">Meta Final</small>
+                        <strong id="res-val-2">R$ 0,00</strong>
+                    </div>
+                </div>
+
+                <div class="card chart-container">
+                    <canvas id="mainChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+    // --- ESTADO GLOBAL ---
+    let currentMode = 'reserva';
+    let myChart = null;
+    let jaCelebrou = false; // Controle de confetes
+
+    // --- CONFIGURAÇÃO ---
+    const configs = {
+        reserva: {
+            title: "Reserva de Emergência", desc: "Sua segurança financeira em primeiro lugar.",
+            inputs: ['inp-custo-vida', 'inp-meses-reserva', 'inp-inicial', 'inp-mensal', 'inp-taxa'],
+            mainLabel: "Tempo Necessário", kpi1: "Total Acumulado", kpi2: "Meta da Reserva"
+        },
+        divida: {
+            title: "Pagamento de Dívidas", desc: "Estratégia para quitar seus débitos.",
+            inputs: ['inp-valor-divida', 'inp-taxa-divida', 'inp-inicial', 'inp-mensal', 'inp-taxa'],
+            mainLabel: "Tempo para Quitação", kpi1: "Saldo Investido", kpi2: "Valor da Dívida"
+        },
+        aposentadoria: {
+            title: "Planejamento Aposentadoria", desc: "O futuro que você merece começa hoje.",
+            inputs: ['inp-renda-aposentadoria', 'inp-tempo-acumular', 'inp-tempo-usufruir', 'inp-inicial', 'inp-mensal', 'inp-taxa'],
+            mainLabel: "Status da Reserva", kpi1: "Patrimônio Acumulado", kpi2: "Necessário"
+        },
+        investimentos: {
+            title: "Investimentos Gerais", desc: "Veja o efeito bola de neve nos seus juros.",
+            inputs: ['inp-tempo-acumular', 'inp-inicial', 'inp-mensal', 'inp-taxa'],
+            mainLabel: "Patrimônio Final", kpi1: "Total Investido", kpi2: "Total em Juros"
+        },
+        bens: {
+            title: "Aquisição de Bens", desc: "Casa, carro ou barco. Planeje sua conquista.",
+            inputs: ['inp-valor-meta', 'inp-inicial', 'inp-mensal', 'inp-taxa'],
+            mainLabel: "Tempo Necessário", kpi1: "Total Acumulado", kpi2: "Valor do Bem"
+        },
+        sonhos: {
+            title: "Realização de Sonhos", desc: "Viagens e festas com pagamento à vista.",
+            inputs: ['inp-valor-meta', 'inp-tempo-acumular', 'inp-inicial', 'inp-taxa'],
+            mainLabel: "Aporte Mensal Necessário", kpi1: "Valor do Sonho", kpi2: "Juros que Ajudam"
+        },
+        faculdade: {
+            title: "Faculdade do Filho", desc: "Garanta a educação sem sustos financeiros.",
+            inputs: ['inp-custo-faculdade', 'inp-duracao-curso', 'inp-tempo-antecede', 'inp-inicial', 'inp-taxa'],
+            mainLabel: "Poupança Mensal Necessária", kpi1: "Custo Total do Curso", kpi2: "Montante Necessário"
+        }
+    };
+
+    // --- INICIALIZAÇÃO E PERSISTÊNCIA ---
+    window.onload = function() {
+        loadData(); // Carrega dados salvos
+        setMode('reserva'); // Inicia
+    };
+
+    function saveAndCalc() {
+        // Salva todos os inputs no LocalStorage
+        const inputs = document.querySelectorAll('input');
+        inputs.forEach(inp => {
+            if(inp.id) localStorage.setItem(inp.id, inp.value);
+            if(inp.type === 'radio' && inp.checked) localStorage.setItem(inp.name, inp.value);
+        });
+        calcular();
+    }
+
+    function loadData() {
+        const inputs = document.querySelectorAll('input');
+        inputs.forEach(inp => {
+            if(inp.type === 'radio') {
+                const val = localStorage.getItem(inp.name);
+                if(val && inp.value === val) inp.checked = true;
+            } else if(inp.id) {
+                const val = localStorage.getItem(inp.id);
+                if(val !== null) inp.value = val;
             }
+        });
+    }
 
-            // 5. Atualizar Gráfico
-            atualizarGrafico(labels, dataSaldo, dataMeta);
+    // --- NAVEGAÇÃO ---
+    function setMode(mode) {
+        currentMode = mode;
+        jaCelebrou = false; // Reseta confetes
+        const conf = configs[mode];
+        const elItem = event.currentTarget || document.querySelector(`.menu-item[onclick="setMode('${mode}')"]`);
+
+        // UI Updates
+        document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
+        if(elItem) elItem.classList.add('active');
+
+        const color = elItem ? elItem.dataset.theme : '#16a085';
+        const bg = elItem ? elItem.dataset.bg : '#e8f8f5';
+        document.documentElement.style.setProperty('--color-active', color);
+        document.documentElement.style.setProperty('--bg-active', bg);
+
+        document.getElementById('page-title').innerText = conf.title;
+        document.getElementById('page-desc').innerText = conf.desc;
+        document.getElementById('res-label-main').innerText = conf.mainLabel;
+        document.getElementById('res-label-1').innerText = conf.kpi1;
+        document.getElementById('res-label-2').innerText = conf.kpi2;
+
+        document.querySelectorAll('.input-group').forEach(el => el.classList.remove('visible'));
+        conf.inputs.forEach(id => {
+            const el = document.getElementById(id);
+            if(el) el.classList.add('visible');
+        });
+
+        // Ajustes Específicos
+        const lblMeta = document.getElementById('lbl-valor-meta');
+        if(mode === 'bens') lblMeta.innerText = "Valor do Bem (Carro/Casa) R$";
+        else if(mode === 'sonhos') lblMeta.innerText = "Valor do Sonho (Viagem) R$";
+        else lblMeta.innerText = "Valor do Objetivo (R$)";
+
+        const inpMensalDiv = document.getElementById('inp-mensal');
+        const inpMensalInput = document.getElementById('val_mensal');
+        const hint = document.getElementById('hint-aporte');
+        
+        if (mode === 'sonhos' || mode === 'faculdade') {
+            inpMensalDiv.classList.remove('visible');
+            hint.style.display = 'none';
+        } else {
+            inpMensalInput.disabled = false;
+            hint.style.display = 'none';
         }
 
-        function formatarMoeda(val) {
-            return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        calcular();
+    }
+
+    // --- CELEBRAÇÃO ---
+    function celebrar() {
+        if(!jaCelebrou) {
+            confetti({
+                particleCount: 150,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: ['#00b094', '#2c3e50', '#f39c12']
+            });
+            jaCelebrou = true;
         }
+    }
 
-        function atualizarGrafico(labels, dataSaldo, dataMeta) {
-            const ctx = document.getElementById('financeChart').getContext('2d');
-            if (myChart) myChart.destroy();
+    // --- CÁLCULO CENTRAL ---
+    function calcular() {
+        const num = (id) => parseFloat(document.getElementById(id).value) || 0;
+        const fmt = (v) => v.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+        
+        // 1. Ajuste de Inflação
+        const useInflation = document.getElementById('inflation-switch').checked;
+        const inflationRateMonth = 0.0037; // Aprox 4.5% a.a.
+        
+        // Exibe Badge "Modo Real"
+        document.getElementById('tag-real').style.display = useInflation ? 'block' : 'none';
 
-            myChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: 'Seu Patrimônio',
-                            data: dataSaldo,
-                            borderColor: '#00b094',
-                            backgroundColor: 'rgba(0, 176, 148, 0.1)',
-                            borderWidth: 3,
-                            fill: true,
-                            tension: 0.3
-                        },
-                        {
-                            label: 'Meta Necessária',
-                            data: dataMeta,
-                            borderColor: '#e74c3c',
-                            borderDash: [5, 5],
-                            borderWidth: 2,
-                            fill: false,
-                            pointRadius: 0
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: { mode: 'index', intersect: false },
-                    plugins: {
-                        legend: { position: 'top' },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return context.dataset.label + ': ' + context.parsed.y.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                                },
-                                title: function(context) {
-                                    return 'Mês ' + context[0].label;
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: { color: '#f0f0f0' },
-                            ticks: {
-                                callback: function(value) { return 'R$ ' + value.toLocaleString('pt-BR', { notation: "compact" }); }
-                            }
-                        },
-                        x: {
-                            grid: { display: false },
-                            title: { display: true, text: 'Tempo (Meses)' }
-                        }
-                    }
+        let taxaNominal = num('rate_inv') / 100;
+        // Fórmula de Fisher Simplificada: (1+i) = (1+r) * (1+inf) -> r = (1+i)/(1+inf) - 1
+        let taxa = useInflation ? ((1 + taxaNominal) / (1 + inflationRateMonth) - 1) : taxaNominal;
+
+        let inicial = num('val_inicial');
+        let mensal = num('val_mensal');
+        
+        let resultadoMain = "", resultadoSub = "";
+        let val1 = 0, val2 = 0;
+        let labels = [], data1 = [], data2 = [];
+        let chartLabel1 = "Patrimônio", chartLabel2 = "Meta";
+        
+        // Reset celebration if inputs change significantly (simplificado)
+        // jaCelebrou = false; 
+
+        switch (currentMode) {
+            case 'reserva':
+                const custo = num('val_custo_mensal');
+                const mesesRes = parseInt(document.querySelector('input[name="reserva_tamanho"]:checked').value);
+                const metaReserva = custo * mesesRes;
+                document.getElementById('txt-total-reserva').innerText = `Meta: ${fmt(metaReserva)}`;
+                
+                let sRes = inicial, mRes = 0;
+                while(sRes < metaReserva && mRes < 600) {
+                    if(mRes % 2 === 0) { labels.push(mRes); data1.push(sRes); data2.push(metaReserva); }
+                    sRes = sRes * (1+taxa) + mensal;
+                    mRes++;
                 }
+                labels.push(mRes); data1.push(sRes); data2.push(metaReserva);
+
+                resultadoMain = `${mRes} Meses`;
+                resultadoSub = `(${(mRes/12).toFixed(1)} Anos)`;
+                val1 = sRes; val2 = metaReserva;
+                if(mRes < 600) celebrar(); // Celebra se for atingível
+                break;
+
+            case 'divida':
+                let divida = num('val_divida');
+                let taxaDivida = num('rate_debt') / 100;
+                // Inflação não abate dívida nominal contratada, mas afeta investimento
+                // Para manter a comparação justa no modo REAL, descontamos inflação da taxa da dívida também
+                // (Dívida real diminui com inflação).
+                let taxaDivReal = useInflation ? ((1+taxaDivida)/(1+inflationRateMonth)-1) : taxaDivida;
+
+                let inv = inicial, divAtual = divida, m = 0;
+                while(inv < divAtual && m < 360) {
+                    if(m % 6 === 0) { labels.push(m); data1.push(inv); data2.push(divAtual); }
+                    inv = inv * (1+taxa) + mensal;
+                    divAtual = divAtual * (1+taxaDivReal);
+                    m++;
+                }
+                labels.push(m); data1.push(inv); data2.push(divAtual);
+                chartLabel2 = "Dívida";
+
+                if(m >= 360) {
+                    resultadoMain = "Indefinido";
+                    resultadoSub = "Juros da dívida vencem o investimento.";
+                } else {
+                    resultadoMain = `${m} Meses`;
+                    resultadoSub = "Para quitar à vista";
+                    celebrar();
+                }
+                val1 = inv; val2 = divAtual;
+                break;
+
+            case 'aposentadoria':
+                let tAcum = num('time_acum');
+                let tUsuf = num('time_usuf') * 12;
+                let renda = num('val_renda_apose');
+
+                let sApos = inicial;
+                for(let i=0; i<=tAcum; i++) {
+                     if(i%12===0) { labels.push(i); data1.push(sApos); }
+                     if(i < tAcum) sApos = sApos * (1+taxa) + mensal;
+                }
+                
+                let nec = (taxa > 0) ? renda * ((1 - Math.pow(1+taxa, -tUsuf)) / taxa) : renda * tUsuf;
+                data2 = Array(labels.length).fill(nec);
+
+                if(sApos >= nec) {
+                    resultadoMain = "Suficiente! ✅";
+                    resultadoSub = `Superávit: ${fmt(sApos - nec)}`;
+                    celebrar();
+                } else {
+                    resultadoMain = "Insuficiente ⚠️";
+                    resultadoSub = `Faltam: ${fmt(nec - sApos)}`;
+                }
+                val1 = sApos; val2 = nec;
+                break;
+
+            case 'investimentos':
+                let tInv = num('time_acum');
+                let sInv = inicial, totInv = inicial;
+                for(let i=0; i<=tInv; i++) {
+                    if(i%Math.ceil(tInv/20) === 0 || i===tInv) { labels.push(i); data1.push(sInv); }
+                    if(i < tInv) { sInv = sInv * (1+taxa) + mensal; totInv += mensal; }
+                }
+                resultadoMain = fmt(sInv);
+                resultadoSub = useInflation ? "Patrimônio (Poder de Compra)" : "Patrimônio Nominal";
+                val1 = totInv; val2 = sInv - totInv;
+                document.getElementById('res-label-2').innerText = "Total em Juros";
+                data2 = null;
+                celebrar();
+                break;
+
+            case 'bens':
+                let vBem = num('val_meta');
+                let sBem = inicial, mBem = 0;
+                while(sBem < vBem && mBem < 600) {
+                     if(mBem % 2 === 0) { labels.push(mBem); data1.push(sBem); data2.push(vBem); }
+                     sBem = sBem * (1+taxa) + mensal;
+                     mBem++;
+                }
+                labels.push(mBem); data1.push(sBem); data2.push(vBem);
+                resultadoMain = `${mBem} Meses`;
+                resultadoSub = `(${(mBem/12).toFixed(1)} Anos)`;
+                val1 = sBem; val2 = vBem;
+                if(mBem < 600) celebrar();
+                break;
+
+            case 'sonhos':
+                let vSonho = num('val_meta');
+                let tSonho = num('time_acum');
+                
+                let termoP = inicial * Math.pow(1+taxa, tSonho);
+                let divSonho = (taxa > 0) ? (Math.pow(1+taxa, tSonho) - 1) / taxa : tSonho;
+                let pmtSonho = (divSonho > 0) ? (vSonho - termoP) / divSonho : 0;
+                if(pmtSonho < 0) pmtSonho = 0;
+
+                resultadoMain = fmt(pmtSonho);
+                resultadoSub = "Poupança Mensal";
+                val1 = vSonho; 
+                val2 = vSonho - termoP - (pmtSonho*tSonho); if(val2<0) val2=0;
+
+                let ss = inicial;
+                for(let i=0; i<=tSonho; i++) {
+                    labels.push(i); data1.push(ss); data2.push(vSonho);
+                    ss = ss*(1+taxa) + pmtSonho;
+                }
+                document.getElementById('res-label-2').innerText = "Juros Compostos";
+                celebrar();
+                break;
+
+            case 'faculdade':
+                let cMes = num('val_custo_curso');
+                let dCur = num('time_curso');
+                let tEsp = num('time_wait');
+
+                let montante = (taxa > 0) ? cMes * ((1 - Math.pow(1+taxa, -dCur)) / taxa) : cMes * dCur;
+                let termoFac = inicial * Math.pow(1+taxa, tEsp);
+                let divFac = (taxa > 0) ? (Math.pow(1+taxa, tEsp) - 1) / taxa : tEsp;
+                let pmtFac = (divFac > 0) ? (montante - termoFac) / divFac : 0;
+                if(pmtFac < 0) pmtFac = 0;
+
+                resultadoMain = fmt(pmtFac);
+                resultadoSub = "Poupar por mês";
+                val1 = cMes * dCur; val2 = montante;
+
+                let sf = inicial;
+                for(let i=0; i<=tEsp; i++) {
+                    if(i%6===0 || i===tEsp) { labels.push(i); data1.push(sf); }
+                    if(i < tEsp) sf = sf * (1+taxa) + pmtFac;
+                }
+                for(let j=1; j<=dCur; j++) {
+                    let mg = tEsp + j;
+                    sf = sf * (1+taxa) - cMes;
+                    if(sf < 0) sf = 0;
+                    if(j%6===0 || j===dCur) { labels.push(mg); data1.push(sf); }
+                }
+                chartLabel1 = "Saldo Educacional";
+                data2 = null;
+                celebrar();
+                break;
+        }
+
+        document.getElementById('res-val-main').innerText = resultadoMain;
+        document.getElementById('res-sub-main').innerText = resultadoSub;
+        document.getElementById('res-val-1').innerText = fmt(val1);
+        document.getElementById('res-val-2').innerText = fmt(val2);
+
+        renderChart(labels, data1, data2, chartLabel1, chartLabel2);
+    }
+
+    function renderChart(lbls, d1, d2, l1, l2) {
+        const ctx = document.getElementById('mainChart').getContext('2d');
+        if(myChart) myChart.destroy();
+        const color = getComputedStyle(document.documentElement).getPropertyValue('--color-active').trim();
+
+        const datasets = [{
+            label: l1, data: d1, borderColor: color, backgroundColor: color + '20',
+            borderWidth: 3, fill: true, pointRadius: 0, tension: 0.4
+        }];
+        if(d2) {
+            datasets.push({
+                label: l2, data: d2, borderColor: '#e74c3c', borderWidth: 2,
+                borderDash: [5, 5], fill: false, pointRadius: 0
             });
         }
 
-        // Inicializa
-        window.onload = calcular;
-
-    </script>
+        myChart = new Chart(ctx, {
+            type: 'line',
+            data: { labels: lbls, datasets: datasets },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: {display: true}, tooltip: {mode: 'index', intersect: false} },
+                scales: {
+                    x: { display: true, title: {display:true, text: 'Meses'} },
+                    y: { ticks: { callback: (v) => v.toLocaleString('pt-BR', {notation:'compact', style:'currency', currency:'BRL'}) } }
+                }
+            }
+        });
+    }
+</script>
 </body>
 </html>
